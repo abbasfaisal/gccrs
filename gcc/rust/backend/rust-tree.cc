@@ -674,4 +674,289 @@ pointer_offset_expression (tree base_tree, tree index_tree, location_t location)
 			  base_tree, offset);
 }
 
+// forked from gcc/cp/pt.cc is_auto
+/* Returns true iff TYPE is a TEMPLATE_TYPE_PARM representing 'auto' or
+   'decltype(auto)' or a deduced class template.  */
+
+bool
+is_auto (const_tree type)
+{
+  // commenting out for now as we don't know how cp_global_trees referenced
+  // inside auto_identifier below needs to be ported if (TREE_CODE (type) ==
+  // TEMPLATE_TYPE_PARM
+  //    && (TYPE_IDENTIFIER (type) == auto_identifier
+  //	  || TYPE_IDENTIFIER (type) == decltype_auto_identifier))
+  //  return true;
+  // else
+  //  return false;
+
+  return false;
+}
+
+// forked from gcc/cp/pt.cc template_placeholder_p
+/* True iff T is a C++17 class template deduction placeholder.  */
+
+bool
+template_placeholder_p (tree t)
+{
+  return is_auto (t) && CLASS_PLACEHOLDER_TEMPLATE (t);
+}
+
+// forked from gcc/cp/namespace-lookup.cc
+struct saved_scope *scope_chain;
+
+// forked from gcc/cp/parser.cc cp_unevaluated_operand
+/* Nonzero if we are parsing an unevaluated operand: an operand to
+   sizeof, typeof, or alignof.  */
+int cp_unevaluated_operand;
+
+// forked from gcc/cp/tree.cc cp_walk_subtrees
+/* Apply FUNC to all language-specific sub-trees of TP in a pre-order
+   traversal.  Called from walk_tree.  */
+
+tree
+cp_walk_subtrees (tree *tp, int *walk_subtrees_p, walk_tree_fn func, void *data,
+		  hash_set<tree> *pset)
+{
+  enum tree_code code = TREE_CODE (*tp);
+  tree result;
+
+#define WALK_SUBTREE(NODE)                                                     \
+  do                                                                           \
+    {                                                                          \
+      result = cp_walk_tree (&(NODE), func, data, pset);                       \
+      if (result)                                                              \
+	goto out;                                                              \
+    }                                                                          \
+  while (0)
+
+  if (TYPE_P (*tp))
+    {
+      /* If *WALK_SUBTREES_P is 1, we're interested in the syntactic form of
+	 the argument, so don't look through typedefs, but do walk into
+	 template arguments for alias templates (and non-typedefed classes).
+
+	 If *WALK_SUBTREES_P > 1, we're interested in type identity or
+	 equivalence, so look through typedefs, ignoring template arguments for
+	 alias templates, and walk into template args of classes.
+
+	 See find_abi_tags_r for an example of setting *WALK_SUBTREES_P to 2
+	 when that's the behavior the walk_tree_fn wants.  */
+      if (*walk_subtrees_p == 1 && typedef_variant_p (*tp))
+	{
+	  if (tree ti = TYPE_ALIAS_TEMPLATE_INFO (*tp))
+	    WALK_SUBTREE (TI_ARGS (ti));
+	  *walk_subtrees_p = 0;
+	  return NULL_TREE;
+	}
+
+      if (tree ti = TYPE_TEMPLATE_INFO (*tp))
+	WALK_SUBTREE (TI_ARGS (ti));
+    }
+
+  /* Not one of the easy cases.  We must explicitly go through the
+     children.  */
+  result = NULL_TREE;
+  switch (code)
+    {
+    case TEMPLATE_TYPE_PARM:
+      if (template_placeholder_p (*tp))
+	WALK_SUBTREE (CLASS_PLACEHOLDER_TEMPLATE (*tp));
+      /* Fall through.  */
+    case DEFERRED_PARSE:
+    case TEMPLATE_TEMPLATE_PARM:
+    case BOUND_TEMPLATE_TEMPLATE_PARM:
+    case UNBOUND_CLASS_TEMPLATE:
+    case TEMPLATE_PARM_INDEX:
+    case TYPEOF_TYPE:
+    case UNDERLYING_TYPE:
+      /* None of these have subtrees other than those already walked
+	 above.  */
+      *walk_subtrees_p = 0;
+      break;
+
+    case TYPENAME_TYPE:
+      WALK_SUBTREE (TYPE_CONTEXT (*tp));
+      WALK_SUBTREE (TYPENAME_TYPE_FULLNAME (*tp));
+      *walk_subtrees_p = 0;
+      break;
+
+    case BASELINK:
+      if (BASELINK_QUALIFIED_P (*tp))
+	WALK_SUBTREE (BINFO_TYPE (BASELINK_ACCESS_BINFO (*tp)));
+      WALK_SUBTREE (BASELINK_FUNCTIONS (*tp));
+      *walk_subtrees_p = 0;
+      break;
+
+    case PTRMEM_CST:
+      WALK_SUBTREE (TREE_TYPE (*tp));
+      *walk_subtrees_p = 0;
+      break;
+
+    case TREE_LIST:
+      WALK_SUBTREE (TREE_PURPOSE (*tp));
+      break;
+
+    case OVERLOAD:
+      WALK_SUBTREE (OVL_FUNCTION (*tp));
+      WALK_SUBTREE (OVL_CHAIN (*tp));
+      *walk_subtrees_p = 0;
+      break;
+
+    case USING_DECL:
+      WALK_SUBTREE (DECL_NAME (*tp));
+      WALK_SUBTREE (USING_DECL_SCOPE (*tp));
+      WALK_SUBTREE (USING_DECL_DECLS (*tp));
+      *walk_subtrees_p = 0;
+      break;
+
+    case RECORD_TYPE:
+      if (TYPE_PTRMEMFUNC_P (*tp))
+	WALK_SUBTREE (TYPE_PTRMEMFUNC_FN_TYPE_RAW (*tp));
+      break;
+
+    case TYPE_ARGUMENT_PACK:
+      case NONTYPE_ARGUMENT_PACK: {
+	tree args = ARGUMENT_PACK_ARGS (*tp);
+	int i, len = TREE_VEC_LENGTH (args);
+	for (i = 0; i < len; i++)
+	  WALK_SUBTREE (TREE_VEC_ELT (args, i));
+      }
+      break;
+
+    case TYPE_PACK_EXPANSION:
+      WALK_SUBTREE (TREE_TYPE (*tp));
+      WALK_SUBTREE (PACK_EXPANSION_EXTRA_ARGS (*tp));
+      *walk_subtrees_p = 0;
+      break;
+
+    case EXPR_PACK_EXPANSION:
+      WALK_SUBTREE (TREE_OPERAND (*tp, 0));
+      WALK_SUBTREE (PACK_EXPANSION_EXTRA_ARGS (*tp));
+      *walk_subtrees_p = 0;
+      break;
+
+    case CAST_EXPR:
+    case REINTERPRET_CAST_EXPR:
+    case STATIC_CAST_EXPR:
+    case CONST_CAST_EXPR:
+    case DYNAMIC_CAST_EXPR:
+    case IMPLICIT_CONV_EXPR:
+    case BIT_CAST_EXPR:
+      if (TREE_TYPE (*tp))
+	WALK_SUBTREE (TREE_TYPE (*tp));
+      break;
+
+    case CONSTRUCTOR:
+      if (COMPOUND_LITERAL_P (*tp))
+	WALK_SUBTREE (TREE_TYPE (*tp));
+      break;
+
+    case TRAIT_EXPR:
+      WALK_SUBTREE (TRAIT_EXPR_TYPE1 (*tp));
+      WALK_SUBTREE (TRAIT_EXPR_TYPE2 (*tp));
+      *walk_subtrees_p = 0;
+      break;
+
+    case DECLTYPE_TYPE:
+      ++cp_unevaluated_operand;
+      /* We can't use WALK_SUBTREE here because of the goto.  */
+      result = cp_walk_tree (&DECLTYPE_TYPE_EXPR (*tp), func, data, pset);
+      --cp_unevaluated_operand;
+      *walk_subtrees_p = 0;
+      break;
+
+    case ALIGNOF_EXPR:
+    case SIZEOF_EXPR:
+    case NOEXCEPT_EXPR:
+      ++cp_unevaluated_operand;
+      result = cp_walk_tree (&TREE_OPERAND (*tp, 0), func, data, pset);
+      --cp_unevaluated_operand;
+      *walk_subtrees_p = 0;
+      break;
+
+    case REQUIRES_EXPR:
+      // Only recurse through the nested expression. Do not
+      // walk the parameter list. Doing so causes false
+      // positives in the pack expansion checker since the
+      // requires parameters are introduced as pack expansions.
+      ++cp_unevaluated_operand;
+      result = cp_walk_tree (&REQUIRES_EXPR_REQS (*tp), func, data, pset);
+      --cp_unevaluated_operand;
+      *walk_subtrees_p = 0;
+      break;
+
+    case DECL_EXPR:
+      /* User variables should be mentioned in BIND_EXPR_VARS
+	 and their initializers and sizes walked when walking
+	 the containing BIND_EXPR.  Compiler temporaries are
+	 handled here.  And also normal variables in templates,
+	 since do_poplevel doesn't build a BIND_EXPR then.  */
+      if (VAR_P (TREE_OPERAND (*tp, 0))
+	  && (processing_template_decl
+	      || (DECL_ARTIFICIAL (TREE_OPERAND (*tp, 0))
+		  && !TREE_STATIC (TREE_OPERAND (*tp, 0)))))
+	{
+	  tree decl = TREE_OPERAND (*tp, 0);
+	  WALK_SUBTREE (DECL_INITIAL (decl));
+	  WALK_SUBTREE (DECL_SIZE (decl));
+	  WALK_SUBTREE (DECL_SIZE_UNIT (decl));
+	}
+      break;
+
+    case LAMBDA_EXPR:
+      /* Don't walk into the body of the lambda, but the capture initializers
+	 are part of the enclosing context.  */
+      for (tree cap = LAMBDA_EXPR_CAPTURE_LIST (*tp); cap;
+	   cap = TREE_CHAIN (cap))
+	WALK_SUBTREE (TREE_VALUE (cap));
+      break;
+
+    case CO_YIELD_EXPR:
+      if (TREE_OPERAND (*tp, 1))
+	/* Operand 1 is the tree for the relevant co_await which has any
+	   interesting sub-trees.  */
+	WALK_SUBTREE (TREE_OPERAND (*tp, 1));
+      break;
+
+    case CO_AWAIT_EXPR:
+      if (TREE_OPERAND (*tp, 1))
+	/* Operand 1 is frame variable.  */
+	WALK_SUBTREE (TREE_OPERAND (*tp, 1));
+      if (TREE_OPERAND (*tp, 2))
+	/* Operand 2 has the initialiser, and we need to walk any subtrees
+	   there.  */
+	WALK_SUBTREE (TREE_OPERAND (*tp, 2));
+      break;
+
+    case CO_RETURN_EXPR:
+      if (TREE_OPERAND (*tp, 0))
+	{
+	  if (VOID_TYPE_P (TREE_OPERAND (*tp, 0)))
+	    /* For void expressions, operand 1 is a trivial call, and any
+	       interesting subtrees will be part of operand 0.  */
+	    WALK_SUBTREE (TREE_OPERAND (*tp, 0));
+	  else if (TREE_OPERAND (*tp, 1))
+	    /* Interesting sub-trees will be in the return_value () call
+	       arguments.  */
+	    WALK_SUBTREE (TREE_OPERAND (*tp, 1));
+	}
+      break;
+
+    case STATIC_ASSERT:
+      WALK_SUBTREE (STATIC_ASSERT_CONDITION (*tp));
+      WALK_SUBTREE (STATIC_ASSERT_MESSAGE (*tp));
+      break;
+
+    default:
+      return NULL_TREE;
+    }
+
+  /* We didn't find what we were looking for.  */
+out:
+  return result;
+
+#undef WALK_SUBTREE
+}
+
 } // namespace Rust
