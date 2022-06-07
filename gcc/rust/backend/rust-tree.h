@@ -4067,10 +4067,6 @@ enum scope_kind
   sk_omp	     /* An OpenMP structured block.  */
 };
 
-// forked from gcc/cp/namespace-lookup.h
-/* The datatype used to implement C++ scope.  */
-struct cp_binding_level;
-
 // forked from gcc/cp/namepsace-lookup.h cxx_binding
 /* Datatype that represents binding established by a declaration between
    a name and a C++ entity.  */
@@ -4082,8 +4078,6 @@ struct GTY (()) cxx_binding
   tree value;
   /* The type entity this name is bound to.  */
   tree type;
-  /* The scope at which this binding was made.  */
-  cp_binding_level *scope;
 
   bool value_is_inherited : 1;
   bool is_local : 1;
@@ -4096,99 +4090,6 @@ struct GTY (()) cp_class_binding
   cxx_binding *base;
   /* The bound name.  */
   tree identifier;
-};
-
-// forked from gcc/cp/namepsace-lookup.h cp_binding_level
-/* For each binding contour we allocate a binding_level structure
-   which records the names defined in that contour.
-   Contours include:
-    0) the global one
-    1) one for each function definition,
-       where internal declarations of the parameters appear.
-    2) one for each compound statement,
-       to record its declarations.
-
-   The current meaning of a name can be found by searching the levels
-   from the current one out to the global one.
-
-   Off to the side, may be the class_binding_level.  This exists only
-   to catch class-local declarations.  It is otherwise nonexistent.
-
-   Also there may be binding levels that catch cleanups that must be
-   run when exceptions occur.  Thus, to see whether a name is bound in
-   the current scope, it is not enough to look in the
-   CURRENT_BINDING_LEVEL.  You should use lookup_name_current_level
-   instead.  */
-
-struct GTY (()) cp_binding_level
-{
-  /* A chain of _DECL nodes for all variables, constants, functions,
-      and typedef types.  These are in the reverse of the order
-      supplied.  There may be OVERLOADs on this list, too, but they
-      are wrapped in TREE_LISTs; the TREE_VALUE is the OVERLOAD.  */
-  tree names;
-
-  /* Using directives.  */
-  vec<tree, va_gc> *using_directives;
-
-  /* For the binding level corresponding to a class, the entities
-      declared in the class or its base classes.  */
-  vec<cp_class_binding, va_gc> *class_shadowed;
-
-  /* Similar to class_shadowed, but for IDENTIFIER_TYPE_VALUE, and
-      is used for all binding levels. The TREE_PURPOSE is the name of
-      the entity, the TREE_TYPE is the associated type.  In addition
-      the TREE_VALUE is the IDENTIFIER_TYPE_VALUE before we entered
-      the class.  */
-  tree type_shadowed;
-
-  /* For each level (except not the global one),
-      a chain of BLOCK nodes for all the levels
-      that were entered and exited one level down.  */
-  tree blocks;
-
-  /* The entity (namespace, class, function) the scope of which this
-      binding contour corresponds to.  Otherwise NULL.  */
-  tree this_entity;
-
-  /* The binding level which this one is contained in (inherits from).  */
-  cp_binding_level *level_chain;
-
-  /* STATEMENT_LIST for statements in this binding contour.
-      Only used at present for SK_CLEANUP temporary bindings.  */
-  tree statement_list;
-
-  /* Binding depth at which this level began.  */
-  int binding_depth;
-
-  /* The kind of scope that this object represents.  However, a
-      SK_TEMPLATE_SPEC scope is represented with KIND set to
-      SK_TEMPLATE_PARMS and EXPLICIT_SPEC_P set to true.  */
-  ENUM_BITFIELD (scope_kind) kind : 4;
-
-  /* True if this scope is an SK_TEMPLATE_SPEC scope.  This field is
-      only valid if KIND == SK_TEMPLATE_PARMS.  */
-  BOOL_BITFIELD explicit_spec_p : 1;
-
-  /* true means make a BLOCK for this level regardless of all else.  */
-  unsigned keep : 1;
-
-  /* Nonzero if this level can safely have additional
-      cleanup-needing variables added to it.  */
-  unsigned more_cleanups_ok : 1;
-  unsigned have_cleanups : 1;
-
-  /* Transient state set if this scope is of sk_class kind
-     and is in the process of defining 'this_entity'.  Reset
-     on leaving the class definition to allow for the scope
-     to be subsequently re-used as a non-defining scope for
-     'this_entity'.  */
-  unsigned defining_class_p : 1;
-
-  /* true for SK_FUNCTION_PARMS of immediate functions.  */
-  unsigned immediate_fn_ctx_p : 1;
-
-  /* 22 bits left to fill a 32-bit word.  */
 };
 
 // forked from gcc/cp/namespace-lookup.h cxx_saved_binding
@@ -4224,7 +4125,6 @@ struct GTY (()) saved_scope
   vec<tree, va_gc> *lang_base;
   tree lang_name;
   tree template_parms;
-  cp_binding_level *x_previous_class_level;
   tree x_saved_tree;
 
   /* Only used for uses of this in trailing return type.  */
@@ -4252,9 +4152,6 @@ struct GTY (()) saved_scope
   int ref_temp_count;
 
   struct stmt_tree_s x_stmt_tree;
-
-  cp_binding_level *class_bindings;
-  cp_binding_level *bindings;
 
   hash_map<tree, tree> *GTY ((skip)) x_local_specializations;
   vec<omp_declare_target_attr, va_gc> *omp_declare_target_attribute;
@@ -4567,7 +4464,6 @@ struct GTY (()) lang_decl_fn
 struct GTY (()) lang_decl_ns
 {
   struct lang_decl_base base; /* 32 bits.  */
-  cp_binding_level *level;
 
   /* Inline children.  Needs to be va_gc, because of PCH.  */
   vec<tree, va_gc> *inlinees;
