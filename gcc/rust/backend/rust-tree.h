@@ -3931,10 +3931,6 @@
 #define TEMPLATE_TYPE_PARAMETER_PACK(NODE)                                     \
   (TEMPLATE_PARM_PARAMETER_PACK (TEMPLATE_TYPE_PARM_INDEX (NODE)))
 
-/* For a C++17 class deduction placeholder, the template it represents.  */
-#define CLASS_PLACEHOLDER_TEMPLATE(NODE)                                       \
-  (DECL_INITIAL (TYPE_NAME (TEMPLATE_TYPE_PARM_CHECK (NODE))))
-
 /* True iff this TEMPLATE_TYPE_PARM represents decltype(auto).  */
 #define AUTO_IS_DECLTYPE(NODE)                                                 \
   (TYPE_LANG_FLAG_5 (TEMPLATE_TYPE_PARM_CHECK (NODE)))

@@ -674,34 +674,6 @@ pointer_offset_expression (tree base_tree, tree index_tree, location_t location)
 			  base_tree, offset);
 }
 
-// forked from gcc/cp/pt.cc is_auto
-/* Returns true iff TYPE is a TEMPLATE_TYPE_PARM representing 'auto' or
-   'decltype(auto)' or a deduced class template.  */
-
-bool
-is_auto (const_tree type)
-{
-  // commenting out for now as we don't know how cp_global_trees referenced
-  // inside auto_identifier below needs to be ported if (TREE_CODE (type) ==
-  // TEMPLATE_TYPE_PARM
-  //    && (TYPE_IDENTIFIER (type) == auto_identifier
-  //	  || TYPE_IDENTIFIER (type) == decltype_auto_identifier))
-  //  return true;
-  // else
-  //  return false;
-
-  return false;
-}
-
-// forked from gcc/cp/pt.cc template_placeholder_p
-/* True iff T is a C++17 class template deduction placeholder.  */
-
-bool
-template_placeholder_p (tree t)
-{
-  return is_auto (t) && CLASS_PLACEHOLDER_TEMPLATE (t);
-}
-
 // forked from gcc/cp/namespace-lookup.cc
 struct saved_scope *scope_chain;
 
@@ -730,44 +702,12 @@ cp_walk_subtrees (tree *tp, int *walk_subtrees_p, walk_tree_fn func, void *data,
     }                                                                          \
   while (0)
 
-  if (TYPE_P (*tp))
-    {
-      /* If *WALK_SUBTREES_P is 1, we're interested in the syntactic form of
-	 the argument, so don't look through typedefs, but do walk into
-	 template arguments for alias templates (and non-typedefed classes).
-
-	 If *WALK_SUBTREES_P > 1, we're interested in type identity or
-	 equivalence, so look through typedefs, ignoring template arguments for
-	 alias templates, and walk into template args of classes.
-
-	 See find_abi_tags_r for an example of setting *WALK_SUBTREES_P to 2
-	 when that's the behavior the walk_tree_fn wants.  */
-      if (*walk_subtrees_p == 1 && typedef_variant_p (*tp))
-	{
-	  if (tree ti = TYPE_ALIAS_TEMPLATE_INFO (*tp))
-	    WALK_SUBTREE (TI_ARGS (ti));
-	  *walk_subtrees_p = 0;
-	  return NULL_TREE;
-	}
-
-      if (tree ti = TYPE_TEMPLATE_INFO (*tp))
-	WALK_SUBTREE (TI_ARGS (ti));
-    }
-
   /* Not one of the easy cases.  We must explicitly go through the
      children.  */
   result = NULL_TREE;
   switch (code)
     {
-    case TEMPLATE_TYPE_PARM:
-      if (template_placeholder_p (*tp))
-	WALK_SUBTREE (CLASS_PLACEHOLDER_TEMPLATE (*tp));
-      /* Fall through.  */
     case DEFERRED_PARSE:
-    case TEMPLATE_TEMPLATE_PARM:
-    case BOUND_TEMPLATE_TEMPLATE_PARM:
-    case UNBOUND_CLASS_TEMPLATE:
-    case TEMPLATE_PARM_INDEX:
     case TYPEOF_TYPE:
     case UNDERLYING_TYPE:
       /* None of these have subtrees other than those already walked
@@ -902,21 +842,6 @@ cp_walk_subtrees (tree *tp, int *walk_subtrees_p, walk_tree_fn func, void *data,
 	  WALK_SUBTREE (DECL_SIZE (decl));
 	  WALK_SUBTREE (DECL_SIZE_UNIT (decl));
 	}
-      break;
-
-    case LAMBDA_EXPR:
-      /* Don't walk into the body of the lambda, but the capture initializers
-	 are part of the enclosing context.  */
-      for (tree cap = LAMBDA_EXPR_CAPTURE_LIST (*tp); cap;
-	   cap = TREE_CHAIN (cap))
-	WALK_SUBTREE (TREE_VALUE (cap));
-      break;
-
-    case CO_YIELD_EXPR:
-      if (TREE_OPERAND (*tp, 1))
-	/* Operand 1 is the tree for the relevant co_await which has any
-	   interesting sub-trees.  */
-	WALK_SUBTREE (TREE_OPERAND (*tp, 1));
       break;
 
     case CO_AWAIT_EXPR:
