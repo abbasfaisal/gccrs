@@ -833,8 +833,7 @@ cp_walk_subtrees (tree *tp, int *walk_subtrees_p, walk_tree_fn func, void *data,
 	 handled here.  And also normal variables in templates,
 	 since do_poplevel doesn't build a BIND_EXPR then.  */
       if (VAR_P (TREE_OPERAND (*tp, 0))
-	  && (processing_template_decl
-	      || (DECL_ARTIFICIAL (TREE_OPERAND (*tp, 0))
+	  && ((DECL_ARTIFICIAL (TREE_OPERAND (*tp, 0))
 		  && !TREE_STATIC (TREE_OPERAND (*tp, 0)))))
 	{
 	  tree decl = TREE_OPERAND (*tp, 0);

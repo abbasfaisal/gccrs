@@ -285,30 +285,6 @@
   TREE_CHECK5 (NODE, VAR_DECL, FIELD_DECL, FUNCTION_DECL, TYPE_DECL,           \
 	       TEMPLATE_DECL)
 
-#define BOUND_TEMPLATE_TEMPLATE_PARM_TYPE_CHECK(NODE)                          \
-  TREE_CHECK (NODE, BOUND_TEMPLATE_TEMPLATE_PARM)
-
-#if defined ENABLE_TREE_CHECKING && (GCC_VERSION >= 2007)
-
-#define TEMPLATE_INFO_DECL_CHECK(NODE)                                         \
-  template_info_decl_check ((NODE), __FILE__, __LINE__, __FUNCTION__)
-
-#define THUNK_FUNCTION_CHECK(NODE)                                             \
-  __extension__({                                                              \
-    __typeof (NODE) const __t = (NODE);                                        \
-    if (TREE_CODE (__t) != FUNCTION_DECL || !__t->decl_common.lang_specific    \
-	|| !__t->decl_common.lang_specific->u.fn.thunk_p)                      \
-      tree_check_failed (__t, __FILE__, __LINE__, __FUNCTION__, 0);            \
-    __t;                                                                       \
-  })
-
-#else /* ENABLE_TREE_CHECKING */
-
-#define TEMPLATE_INFO_DECL_CHECK(NODE) (NODE)
-#define THUNK_FUNCTION_CHECK(NODE) (NODE)
-
-#endif /* ENABLE_TREE_CHECKING */
-
 #define CLEANUP_P(NODE) TREE_LANG_FLAG_0 (TRY_BLOCK_CHECK (NODE))
 
 #define BIND_EXPR_TRY_BLOCK(NODE) TREE_LANG_FLAG_0 (BIND_EXPR_CHECK (NODE))
@@ -649,19 +625,6 @@
 #define FNDECL_HAS_ACCESS_ERRORS(NODE)                                         \
   (TINFO_HAS_ACCESS_ERRORS (DECL_TEMPLATE_INFO (NODE)))
 
-/* Non-zero if this variable template specialization was specified using a
-   template-id, so it's a partial or full specialization and not a definition
-   of the member template of a particular class specialization.  */
-#define TINFO_USED_TEMPLATE_ID(NODE)                                           \
-  (TREE_LANG_FLAG_1 (TEMPLATE_INFO_CHECK (NODE)))
-
-/* Access the expression describing the template constraints. This may be
-   null if no constraints were introduced in the template parameter list,
-   a requirements clause after the template parameter list, or constraints
-   through a constrained-type-specifier.  */
-#define CI_TEMPLATE_REQS(NODE)                                                 \
-  check_constraint_info (check_nonnull (NODE))->template_reqs
-
 /* Access the expression describing the trailing constraints. This is non-null
    for any implicit instantiation of a constrained declaration. For a
    templated declaration it is non-null only when a trailing requires-clause
@@ -672,14 +635,6 @@
 /* The computed associated constraint expression for a declaration.  */
 #define CI_ASSOCIATED_CONSTRAINTS(NODE)                                        \
   check_constraint_info (check_nonnull (NODE))->associated_constr
-
-/* Access the constraint-expression introduced by the requires-clause
-   associate the template parameter list NODE.  */
-#define TEMPLATE_PARMS_CONSTRAINTS(NODE) TREE_TYPE (TREE_LIST_CHECK (NODE))
-
-/* Access the logical constraints on the template parameter declaration
-   indicated by NODE.  */
-#define TEMPLATE_PARM_CONSTRAINTS(NODE) TREE_TYPE (TREE_LIST_CHECK (NODE))
 
 /* Non-zero if the noexcept is present in a compound requirement.  */
 #define COMPOUND_REQ_NOEXCEPT_P(NODE)                                          \
@@ -831,18 +786,6 @@
 #define current_lang_base scope_chain->lang_base
 #define current_lang_name scope_chain->lang_name
 
-/* When parsing a template declaration, a TREE_LIST represents the
-   active template parameters.  Each node in the list represents one
-   level of template parameters.  The innermost level is first in the
-   list.  The depth of each level is stored as an INTEGER_CST in the
-   TREE_PURPOSE of each node.  The parameters for that level are
-   stored in the TREE_VALUE.  */
-
-#define current_template_parms scope_chain->template_parms
-#define current_template_depth                                                 \
-  (current_template_parms ? TMPL_PARMS_DEPTH (current_template_parms) : 0)
-
-#define processing_template_decl scope_chain->x_processing_template_decl
 #define processing_specialization scope_chain->x_processing_specialization
 #define processing_explicit_instantiation                                      \
   scope_chain->x_processing_explicit_instantiation
@@ -1430,10 +1373,6 @@
    || TREE_CODE (NODE) == TEMPLATE_DECL || TREE_CODE (NODE) == USING_DECL      \
    || TREE_CODE (NODE) == CONCEPT_DECL)
 
-/* Looks through a template (if present) to find what it declares.  */
-#define STRIP_TEMPLATE(NODE)                                                   \
-  (TREE_CODE (NODE) == TEMPLATE_DECL ? DECL_TEMPLATE_RESULT (NODE) : NODE)
-
 #if defined ENABLE_TREE_CHECKING && (GCC_VERSION >= 2007)
 
 #define LANG_DECL_MIN_CHECK(NODE)                                              \
@@ -1442,17 +1381,6 @@
     if (!LANG_DECL_HAS_MIN (NODE))                                             \
       lang_check_failed (__FILE__, __LINE__, __FUNCTION__);                    \
     &lt->u.min;                                                                \
-  })
-
-/* We want to be able to check DECL_CONSTRUCTOR_P and such on a function
-   template, not just on a FUNCTION_DECL.  So when looking for things in
-   lang_decl_fn, look down through a TEMPLATE_DECL into its result.  */
-#define LANG_DECL_FN_CHECK(NODE)                                               \
-  __extension__({                                                              \
-    struct lang_decl *lt = DECL_LANG_SPECIFIC (STRIP_TEMPLATE (NODE));         \
-    if (!DECL_DECLARES_FUNCTION_P (NODE) || lt->u.base.selector != lds_fn)     \
-      lang_check_failed (__FILE__, __LINE__, __FUNCTION__);                    \
-    &lt->u.fn;                                                                 \
   })
 
 #define LANG_DECL_NS_CHECK(NODE)                                               \
@@ -1704,13 +1632,6 @@
    cleared.  There are requirements on its default parms.  */
 #define DECL_UNIQUE_FRIEND_P(NODE)                                             \
   (DECL_LANG_SPECIFIC (FUNCTION_DECL_CHECK (NODE))->u.base.friend_or_tls)
-
-/* True of a TEMPLATE_DECL that is a template class friend.  Such
-   decls are not pushed until instantiated (as they may depend on
-   parameters of the befriending class).  DECL_CHAIN is the
-   befriending class.  */
-#define DECL_UNINSTANTIATED_TEMPLATE_FRIEND_P(NODE)                            \
-  (DECL_LANG_FLAG_4 (TEMPLATE_DECL_CHECK (NODE)))
 
 /* Nonzero if the thread-local variable was declared with __thread as
    opposed to thread_local.  */
@@ -2036,10 +1957,6 @@
 /* Nonzero for TYPE_DECL means that it was written 'using name = type'.  */
 #define TYPE_DECL_ALIAS_P(NODE) DECL_LANG_FLAG_6 (TYPE_DECL_CHECK (NODE))
 
-/* Nonzero for TEMPLATE_DECL means that it is a 'complex' alias template.  */
-#define TEMPLATE_DECL_COMPLEX_ALIAS_P(NODE)                                    \
-  DECL_LANG_FLAG_2 (TEMPLATE_DECL_CHECK (NODE))
-
 /* Nonzero for a type which is an alias for another type; i.e, a type
    which declaration was written 'using name-of-type =
    another-type'.  */
@@ -2048,31 +1965,6 @@
    && TREE_CODE (TYPE_NAME (NODE)) == TYPE_DECL                                \
    && TYPE_DECL_ALIAS_P (TYPE_NAME (NODE)))
 
-/* If non-NULL for a VAR_DECL, FUNCTION_DECL, TYPE_DECL, TEMPLATE_DECL,
-   or CONCEPT_DECL, the entity is either a template specialization (if
-   DECL_USE_TEMPLATE is nonzero) or the abstract instance of the
-   template itself.
-
-   In either case, DECL_TEMPLATE_INFO is a TEMPLATE_INFO, whose
-   TI_TEMPLATE is the TEMPLATE_DECL of which this entity is a
-   specialization or abstract instance.  The TI_ARGS is the
-   template arguments used to specialize the template.
-
-   Consider:
-
-      template <typename T> struct S { friend void f(T) {} };
-
-   In this case, S<int>::f is, from the point of view of the compiler,
-   an instantiation of a template -- but, from the point of view of
-   the language, each instantiation of S results in a wholly unrelated
-   global function f.  In this case, DECL_TEMPLATE_INFO for S<int>::f
-   will be non-NULL, but DECL_USE_TEMPLATE will be zero.
-
-   In a friend declaration, TI_TEMPLATE can be an overload set, or
-   identifier.  */
-#define DECL_TEMPLATE_INFO(NODE)                                               \
-  (DECL_LANG_SPECIFIC (TEMPLATE_INFO_DECL_CHECK (NODE))->u.min.template_info)
-
 /* For a lambda capture proxy, its captured variable.  */
 #define DECL_CAPTURED_VARIABLE(NODE) (LANG_DECL_MIN_CHECK (NODE)->access)
 
@@ -2080,216 +1972,6 @@
    non-static data member of anonymous union that has been promoted to
    variable status.  */
 #define DECL_ANON_UNION_VAR_P(NODE) (DECL_LANG_FLAG_4 (VAR_DECL_CHECK (NODE)))
-
-/* Template information for a RECORD_TYPE or UNION_TYPE.  */
-#define CLASSTYPE_TEMPLATE_INFO(NODE)                                          \
-  (TYPE_LANG_SLOT_1 (RECORD_OR_UNION_CHECK (NODE)))
-
-/* Template information for a template template parameter.  */
-#define TEMPLATE_TEMPLATE_PARM_TEMPLATE_INFO(NODE)                             \
-  (TYPE_LANG_SLOT_1 (BOUND_TEMPLATE_TEMPLATE_PARM_TYPE_CHECK (NODE)))
-
-/* Template information for an ENUMERAL_, RECORD_, UNION_TYPE, or
-   BOUND_TEMPLATE_TEMPLATE_PARM type.  This ignores any alias
-   templateness of NODE.  It'd be nice if this could unconditionally
-   access the slot, rather than return NULL if given a
-   non-templatable type.  */
-#define TYPE_TEMPLATE_INFO(NODE)                                               \
-  (TREE_CODE (NODE) == ENUMERAL_TYPE                                           \
-       || TREE_CODE (NODE) == BOUND_TEMPLATE_TEMPLATE_PARM                     \
-       || RECORD_OR_UNION_TYPE_P (NODE)                                        \
-     ? TYPE_LANG_SLOT_1 (NODE)                                                 \
-     : NULL_TREE)
-
-/* Template information (if any) for an alias type.  */
-#define TYPE_ALIAS_TEMPLATE_INFO(NODE)                                         \
-  (DECL_LANG_SPECIFIC (TYPE_NAME (NODE))                                       \
-     ? DECL_TEMPLATE_INFO (TYPE_NAME (NODE))                                   \
-     : NULL_TREE)
-
-/* If NODE is a type alias, this accessor returns the template info
-   for the alias template (if any).  Otherwise behave as
-   TYPE_TEMPLATE_INFO.  */
-#define TYPE_TEMPLATE_INFO_MAYBE_ALIAS(NODE)                                   \
-  (typedef_variant_p (NODE) ? TYPE_ALIAS_TEMPLATE_INFO (NODE)                  \
-			    : TYPE_TEMPLATE_INFO (NODE))
-
-/* Set the template information for a non-alias n ENUMERAL_, RECORD_,
-   or UNION_TYPE to VAL.  ALIAS's are dealt with separately.  */
-#define SET_TYPE_TEMPLATE_INFO(NODE, VAL)                                      \
-  (TREE_CODE (NODE) == ENUMERAL_TYPE                                           \
-       || (CLASS_TYPE_P (NODE) && !TYPE_ALIAS_P (NODE))                        \
-     ? (TYPE_LANG_SLOT_1 (NODE) = (VAL))                                       \
-     : (DECL_TEMPLATE_INFO (TYPE_NAME (NODE)) = (VAL)))
-
-#define TI_TEMPLATE(NODE)                                                      \
-  ((struct tree_template_info *) TEMPLATE_INFO_CHECK (NODE))->tmpl
-#define TI_ARGS(NODE)                                                          \
-  ((struct tree_template_info *) TEMPLATE_INFO_CHECK (NODE))->args
-#define TI_PENDING_TEMPLATE_FLAG(NODE)                                         \
-  TREE_LANG_FLAG_1 (TEMPLATE_INFO_CHECK (NODE))
-/* For a given TREE_VEC containing a template argument list,
-   this property contains the number of arguments that are not
-   defaulted.  */
-#define NON_DEFAULT_TEMPLATE_ARGS_COUNT(NODE) TREE_CHAIN (TREE_VEC_CHECK (NODE))
-
-/* Below are the setter and getter of the NON_DEFAULT_TEMPLATE_ARGS_COUNT
-   property.  */
-#define SET_NON_DEFAULT_TEMPLATE_ARGS_COUNT(NODE, INT_VALUE)                   \
-  NON_DEFAULT_TEMPLATE_ARGS_COUNT (NODE) = build_int_cst (NULL_TREE, INT_VALUE)
-#if CHECKING_P
-#define GET_NON_DEFAULT_TEMPLATE_ARGS_COUNT(NODE)                              \
-  int_cst_value (NON_DEFAULT_TEMPLATE_ARGS_COUNT (NODE))
-#else
-#define GET_NON_DEFAULT_TEMPLATE_ARGS_COUNT(NODE)                              \
-  NON_DEFAULT_TEMPLATE_ARGS_COUNT (NODE)                                       \
-  ? int_cst_value (NON_DEFAULT_TEMPLATE_ARGS_COUNT (NODE))                     \
-  : TREE_VEC_LENGTH (INNERMOST_TEMPLATE_ARGS (NODE))
-#endif
-
-/* The list of access checks that were deferred during parsing
-   which need to be performed at template instantiation time.
-
-   FIXME this should be associated with the TEMPLATE_DECL, not the
-   TEMPLATE_INFO.  */
-#define TI_DEFERRED_ACCESS_CHECKS(NODE)                                        \
-  ((struct tree_template_info *) TEMPLATE_INFO_CHECK (NODE))                   \
-    ->deferred_access_checks
-
-/* We use TREE_VECs to hold template arguments.  If there is only one
-   level of template arguments, then the TREE_VEC contains the
-   arguments directly.  If there is more than one level of template
-   arguments, then each entry in the TREE_VEC is itself a TREE_VEC,
-   containing the template arguments for a single level.  The first
-   entry in the outer TREE_VEC is the outermost level of template
-   parameters; the last is the innermost.
-
-   It is incorrect to ever form a template argument vector containing
-   only one level of arguments, but which is a TREE_VEC containing as
-   its only entry the TREE_VEC for that level.
-
-   For each TREE_VEC containing the template arguments for a single
-   level, it's possible to get or set the number of non defaulted
-   template arguments by using the accessor macros
-   GET_NON_DEFAULT_TEMPLATE_ARGS_COUNT or
-   SET_NON_DEFAULT_TEMPLATE_ARGS_COUNT.  */
-
-/* Nonzero if the template arguments is actually a vector of vectors,
-   rather than just a vector.  */
-#define TMPL_ARGS_HAVE_MULTIPLE_LEVELS(NODE)                                   \
-  (NODE && TREE_VEC_LENGTH (NODE) && TREE_VEC_ELT (NODE, 0)                    \
-   && TREE_CODE (TREE_VEC_ELT (NODE, 0)) == TREE_VEC)
-
-/* The depth of a template argument vector.  When called directly by
-   the parser, we use a TREE_LIST rather than a TREE_VEC to represent
-   template arguments.  In fact, we may even see NULL_TREE if there
-   are no template arguments.  In both of those cases, there is only
-   one level of template arguments.  */
-#define TMPL_ARGS_DEPTH(NODE)                                                  \
-  (TMPL_ARGS_HAVE_MULTIPLE_LEVELS (NODE) ? TREE_VEC_LENGTH (NODE) : 1)
-
-/* The LEVELth level of the template ARGS.  The outermost level of
-   args is level 1, not level 0.  */
-#define TMPL_ARGS_LEVEL(ARGS, LEVEL)                                           \
-  (TMPL_ARGS_HAVE_MULTIPLE_LEVELS (ARGS) ? TREE_VEC_ELT (ARGS, (LEVEL) -1)     \
-					 : (ARGS))
-
-/* Set the LEVELth level of the template ARGS to VAL.  This macro does
-   not work with single-level argument vectors.  */
-#define SET_TMPL_ARGS_LEVEL(ARGS, LEVEL, VAL)                                  \
-  (TREE_VEC_ELT (ARGS, (LEVEL) -1) = (VAL))
-
-/* Accesses the IDXth parameter in the LEVELth level of the ARGS.  */
-#define TMPL_ARG(ARGS, LEVEL, IDX)                                             \
-  (TREE_VEC_ELT (TMPL_ARGS_LEVEL (ARGS, LEVEL), IDX))
-
-/* Given a single level of template arguments in NODE, return the
-   number of arguments.  */
-#define NUM_TMPL_ARGS(NODE) (TREE_VEC_LENGTH (NODE))
-
-/* Returns the innermost level of template arguments in ARGS.  */
-#define INNERMOST_TEMPLATE_ARGS(NODE) (get_innermost_template_args ((NODE), 1))
-
-/* The number of levels of template parameters given by NODE.  */
-#define TMPL_PARMS_DEPTH(NODE)                                                 \
-  ((HOST_WIDE_INT) TREE_INT_CST_LOW (TREE_PURPOSE (NODE)))
-
-/* The TEMPLATE_DECL instantiated or specialized by NODE.  This
-   TEMPLATE_DECL will be the immediate parent, not the most general
-   template.  For example, in:
-
-      template <class T> struct S { template <class U> void f(U); }
-
-   the FUNCTION_DECL for S<int>::f<double> will have, as its
-   DECL_TI_TEMPLATE, `template <class U> S<int>::f<U>'.
-
-   As a special case, for a member friend template of a template
-   class, this value will not be a TEMPLATE_DECL, but rather an
-   IDENTIFIER_NODE or OVERLOAD indicating the name of the template and
-   any explicit template arguments provided.  For example, in:
-
-     template <class T> struct S { friend void f<int>(int, double); }
-
-   the DECL_TI_TEMPLATE will be an IDENTIFIER_NODE for `f' and the
-   DECL_TI_ARGS will be {int}.
-
-   For a FIELD_DECL with a non-static data member initializer, this value
-   is the FIELD_DECL it was instantiated from.  */
-#define DECL_TI_TEMPLATE(NODE) TI_TEMPLATE (DECL_TEMPLATE_INFO (NODE))
-
-/* The template arguments used to obtain this decl from the most
-   general form of DECL_TI_TEMPLATE.  For the example given for
-   DECL_TI_TEMPLATE, the DECL_TI_ARGS will be {int, double}.  These
-   are always the full set of arguments required to instantiate this
-   declaration from the most general template specialized here.  */
-#define DECL_TI_ARGS(NODE) TI_ARGS (DECL_TEMPLATE_INFO (NODE))
-
-/* The TEMPLATE_DECL associated with NODE, a class type.  Even if NODE
-   will be generated from a partial specialization, the TEMPLATE_DECL
-   referred to here will be the original template.  For example,
-   given:
-
-      template <typename T> struct S {};
-      template <typename T> struct S<T*> {};
-
-   the CLASSTYPE_TI_TEMPLATE for S<int*> will be S, not the S<T*>.
-
-   For a member class template, CLASSTYPE_TI_TEMPLATE always refers to the
-   partial instantiation rather than the primary template.  CLASSTYPE_TI_ARGS
-   are for the primary template if the partial instantiation isn't
-   specialized, or for the explicit specialization if it is, e.g.
-
-      template <class T> class C { template <class U> class D; }
-      template <> template <class U> class C<int>::D;  */
-#define CLASSTYPE_TI_TEMPLATE(NODE) TI_TEMPLATE (CLASSTYPE_TEMPLATE_INFO (NODE))
-#define CLASSTYPE_TI_ARGS(NODE) TI_ARGS (CLASSTYPE_TEMPLATE_INFO (NODE))
-
-/* For a template instantiation TYPE, returns the TYPE corresponding
-   to the primary template.  Otherwise returns TYPE itself.  */
-#define CLASSTYPE_PRIMARY_TEMPLATE_TYPE(TYPE)                                  \
-  ((CLASSTYPE_USE_TEMPLATE ((TYPE))                                            \
-    && !CLASSTYPE_TEMPLATE_SPECIALIZATION ((TYPE)))                            \
-     ? TREE_TYPE (DECL_TEMPLATE_RESULT (                                       \
-       DECL_PRIMARY_TEMPLATE (CLASSTYPE_TI_TEMPLATE ((TYPE)))))                \
-     : (TYPE))
-
-/* Like CLASS_TI_TEMPLATE, but also works for ENUMERAL_TYPEs.  */
-#define TYPE_TI_TEMPLATE(NODE) (TI_TEMPLATE (TYPE_TEMPLATE_INFO (NODE)))
-
-/* Like DECL_TI_ARGS, but for an ENUMERAL_, RECORD_, or UNION_TYPE.  */
-#define TYPE_TI_ARGS(NODE) (TI_ARGS (TYPE_TEMPLATE_INFO (NODE)))
-
-#define INNERMOST_TEMPLATE_PARMS(NODE) TREE_VALUE (NODE)
-
-/* Nonzero if NODE (a TEMPLATE_DECL) is a member template, in the
-   sense of [temp.mem].  */
-#define DECL_MEMBER_TEMPLATE_P(NODE)                                           \
-  (DECL_LANG_FLAG_1 (TEMPLATE_DECL_CHECK (NODE)))
-
-/* Nonzero if the NODE corresponds to the template parameters for a
-   member template, whose inline definition is being processed after
-   the class definition is complete.  */
-#define TEMPLATE_PARMS_FOR_INLINE(NODE) TREE_LANG_FLAG_1 (NODE)
 
 /* Determine if a declaration (PARM_DECL or FIELD_DECL) is a pack.  */
 #define DECL_PACK_P(NODE) (DECL_P (NODE) && PACK_EXPANSION_P (TREE_TYPE (NODE)))
@@ -2541,14 +2223,6 @@
    exceptions.  NULL_TREE means 'true'.  */
 #define MUST_NOT_THROW_COND(NODE)                                              \
   TREE_OPERAND (MUST_NOT_THROW_EXPR_CHECK (NODE), 1)
-
-/* The TYPE_MAIN_DECL for a class template type is a TYPE_DECL, not a
-   TEMPLATE_DECL.  This macro determines whether or not a given class
-   type is really a template type, as opposed to an instantiation or
-   specialization of one.  */
-#define CLASSTYPE_IS_TEMPLATE(NODE)                                            \
-  (CLASSTYPE_TEMPLATE_INFO (NODE) && !CLASSTYPE_USE_TEMPLATE (NODE)            \
-   && PRIMARY_TEMPLATE_P (CLASSTYPE_TI_TEMPLATE (NODE)))
 
 /* The name used by the user to name the typename type.  Typically,
    this is an IDENTIFIER_NODE, and the same as the DECL_NAME on the
@@ -3193,124 +2867,6 @@
 /* Nonzero if the FUNCTION_DECL is a global destructor.  */
 #define DECL_GLOBAL_DTOR_P(NODE) (LANG_DECL_FN_CHECK (NODE)->global_dtor_p)
 
-/* Accessor macros for C++ template decl nodes.  */
-
-/* The DECL_TEMPLATE_PARMS are a list.  The TREE_PURPOSE of each node
-   is a INT_CST whose TREE_INT_CST_LOW indicates the level of the
-   template parameters, with 1 being the outermost set of template
-   parameters.  The TREE_VALUE is a vector, whose elements are the
-   template parameters at each level.  Each element in the vector is a
-   TREE_LIST, whose TREE_VALUE is a PARM_DECL (if the parameter is a
-   non-type parameter), or a TYPE_DECL (if the parameter is a type
-   parameter) or a TEMPLATE_DECL (if the parameter is a template
-   parameter).  The TREE_PURPOSE is the default value, if any.  The
-   TEMPLATE_PARM_INDEX for the parameter is available as the
-   DECL_INITIAL (for a PARM_DECL) or as the TREE_TYPE (for a
-   TYPE_DECL).
-
-   FIXME: CONST_CAST_TREE is a hack that hopefully will go away after
-   tree is converted to C++ class hiearchy.  */
-#define DECL_TEMPLATE_PARMS(NODE)                                              \
-  ((struct tree_template_decl *) CONST_CAST_TREE (TEMPLATE_DECL_CHECK (NODE))) \
-    ->arguments
-#define DECL_INNERMOST_TEMPLATE_PARMS(NODE)                                    \
-  INNERMOST_TEMPLATE_PARMS (DECL_TEMPLATE_PARMS (NODE))
-#define DECL_NTPARMS(NODE)                                                     \
-  TREE_VEC_LENGTH (DECL_INNERMOST_TEMPLATE_PARMS (NODE))
-/* For function, method, class-data templates.
-
-   FIXME: CONST_CAST_TREE is a hack that hopefully will go away after
-   tree is converted to C++ class hiearchy.  */
-#define DECL_TEMPLATE_RESULT(NODE)                                             \
-  ((struct tree_template_decl *) CONST_CAST_TREE (TEMPLATE_DECL_CHECK (NODE))) \
-    ->result
-/* For a function template at namespace scope, DECL_TEMPLATE_INSTANTIATIONS
-   lists all instantiations and specializations of the function so that
-   tsubst_friend_function can reassign them to another template if we find
-   that the namespace-scope template is really a partial instantiation of a
-   friend template.
-
-   For a class template the DECL_TEMPLATE_INSTANTIATIONS lists holds
-   all instantiations and specializations of the class type, including
-   partial instantiations and partial specializations, so that if we
-   explicitly specialize a partial instantiation we can walk the list
-   in maybe_process_partial_specialization and reassign them or complain
-   as appropriate.
-
-   In both cases, the TREE_PURPOSE of each node contains the arguments
-   used; the TREE_VALUE contains the generated variable.  The template
-   arguments are always complete.  For example, given:
-
-      template <class T> struct S1 {
-	template <class U> struct S2 {};
-	template <class U> struct S2<U*> {};
-      };
-
-   the record for the partial specialization will contain, as its
-   argument list, { {T}, {U*} }, and will be on the
-   DECL_TEMPLATE_INSTANTIATIONS list for `template <class T> template
-   <class U> struct S1<T>::S2'.
-
-   This list is not used for other templates.  */
-#define DECL_TEMPLATE_INSTANTIATIONS(NODE)                                     \
-  DECL_SIZE_UNIT (TEMPLATE_DECL_CHECK (NODE))
-
-/* For a class template, this list contains the partial
-   specializations of this template.  (Full specializations are not
-   recorded on this list.)  The TREE_PURPOSE holds the arguments used
-   in the partial specialization (e.g., for `template <class T> struct
-   S<T*, int>' this will be `T*, int'.)  The arguments will also include
-   any outer template arguments.  The TREE_VALUE holds the TEMPLATE_DECL
-   for the partial specialization.  The TREE_TYPE is the _TYPE node for
-   the partial specialization.
-
-   This list is not used for other templates.  */
-#define DECL_TEMPLATE_SPECIALIZATIONS(NODE)                                    \
-  DECL_SIZE (TEMPLATE_DECL_CHECK (NODE))
-
-/* Nonzero for a DECL which is actually a template parameter.  Keep
-   these checks in ascending tree code order.   */
-#define DECL_TEMPLATE_PARM_P(NODE)                                             \
-  (DECL_LANG_FLAG_0 (NODE)                                                     \
-   && (TREE_CODE (NODE) == CONST_DECL || TREE_CODE (NODE) == PARM_DECL         \
-       || TREE_CODE (NODE) == TYPE_DECL || TREE_CODE (NODE) == TEMPLATE_DECL))
-
-/* Nonzero for a raw template parameter node.  */
-#define TEMPLATE_PARM_P(NODE)                                                  \
-  (TREE_CODE (NODE) == TEMPLATE_TYPE_PARM                                      \
-   || TREE_CODE (NODE) == TEMPLATE_TEMPLATE_PARM                               \
-   || TREE_CODE (NODE) == TEMPLATE_PARM_INDEX)
-
-/* Mark NODE as a template parameter.  */
-#define SET_DECL_TEMPLATE_PARM_P(NODE) (DECL_LANG_FLAG_0 (NODE) = 1)
-
-/* Nonzero if NODE is a template template parameter.  */
-#define DECL_TEMPLATE_TEMPLATE_PARM_P(NODE)                                    \
-  (TREE_CODE (NODE) == TEMPLATE_DECL && DECL_TEMPLATE_PARM_P (NODE))
-
-/* Nonzero for a DECL that represents a function template.  */
-#define DECL_FUNCTION_TEMPLATE_P(NODE)                                         \
-  (TREE_CODE (NODE) == TEMPLATE_DECL                                           \
-   && DECL_TEMPLATE_RESULT (NODE) != NULL_TREE                                 \
-   && TREE_CODE (DECL_TEMPLATE_RESULT (NODE)) == FUNCTION_DECL)
-
-/* Nonzero for a DECL that represents a class template or alias
-   template.  */
-#define DECL_TYPE_TEMPLATE_P(NODE)                                             \
-  (TREE_CODE (NODE) == TEMPLATE_DECL                                           \
-   && DECL_TEMPLATE_RESULT (NODE) != NULL_TREE                                 \
-   && TREE_CODE (DECL_TEMPLATE_RESULT (NODE)) == TYPE_DECL)
-
-/* Nonzero for a DECL that represents a class template.  */
-#define DECL_CLASS_TEMPLATE_P(NODE)                                            \
-  (DECL_TYPE_TEMPLATE_P (NODE)                                                 \
-   && DECL_IMPLICIT_TYPEDEF_P (DECL_TEMPLATE_RESULT (NODE)))
-
-/* Nonzero for a TEMPLATE_DECL that represents an alias template.  */
-#define DECL_ALIAS_TEMPLATE_P(NODE)                                            \
-  (DECL_TYPE_TEMPLATE_P (NODE)                                                 \
-   && !DECL_ARTIFICIAL (DECL_TEMPLATE_RESULT (NODE)))
-
 /* Nonzero for a NODE which declares a type.  */
 #define DECL_DECLARES_TYPE_P(NODE)                                             \
   (TREE_CODE (NODE) == TYPE_DECL || DECL_TYPE_TEMPLATE_P (NODE))
@@ -3333,119 +2889,10 @@
   (TREE_CODE (NODE) == TYPE_DECL && DECL_LANG_FLAG_4 (NODE))
 #define SET_DECL_SELF_REFERENCE_P(NODE) (DECL_LANG_FLAG_4 (NODE) = 1)
 
-/* A `primary' template is one that has its own template header and is not
-   a partial specialization.  A member function of a class template is a
-   template, but not primary.  A member template is primary.  Friend
-   templates are primary, too.  */
-
-/* Returns the primary template corresponding to these parameters.  */
-#define TPARMS_PRIMARY_TEMPLATE(NODE) (TREE_TYPE (NODE))
-
-#define DECL_PRIMARY_TEMPLATE(NODE)                                            \
-  (TPARMS_PRIMARY_TEMPLATE (DECL_INNERMOST_TEMPLATE_PARMS (NODE)))
-
-/* Returns nonzero if NODE is a primary template.  */
-#define PRIMARY_TEMPLATE_P(NODE) (DECL_PRIMARY_TEMPLATE (NODE) == (NODE))
-
-/* Nonzero iff NODE is a specialization of a template.  The value
-   indicates the type of specializations:
-
-     1=implicit instantiation
-
-     2=partial or explicit specialization, e.g.:
-
-	template <> int min<int> (int, int),
-
-     3=explicit instantiation, e.g.:
-
-	template int min<int> (int, int);
-
-   Note that NODE will be marked as a specialization even if the
-   template it is instantiating is not a primary template.  For
-   example, given:
-
-     template <typename T> struct O {
-       void f();
-       struct I {};
-     };
-
-   both O<int>::f and O<int>::I will be marked as instantiations.
-
-   If DECL_USE_TEMPLATE is nonzero, then DECL_TEMPLATE_INFO will also
-   be non-NULL.  */
-#define DECL_USE_TEMPLATE(NODE) (DECL_LANG_SPECIFIC (NODE)->u.base.use_template)
-
-/* Like DECL_USE_TEMPLATE, but for class types.  */
-#define CLASSTYPE_USE_TEMPLATE(NODE)                                           \
-  (LANG_TYPE_CLASS_CHECK (NODE)->use_template)
-
-/* True if NODE is a specialization of a primary template.  */
-#define CLASSTYPE_SPECIALIZATION_OF_PRIMARY_TEMPLATE_P(NODE)                   \
-  (CLASS_TYPE_P (NODE) && CLASSTYPE_USE_TEMPLATE (NODE)                        \
-   && PRIMARY_TEMPLATE_P (CLASSTYPE_TI_TEMPLATE (NODE)))
-
-#define DECL_TEMPLATE_INSTANTIATION(NODE) (DECL_USE_TEMPLATE (NODE) & 1)
-#define CLASSTYPE_TEMPLATE_INSTANTIATION(NODE)                                 \
-  (CLASSTYPE_USE_TEMPLATE (NODE) & 1)
-
-#define DECL_TEMPLATE_SPECIALIZATION(NODE) (DECL_USE_TEMPLATE (NODE) == 2)
-#define SET_DECL_TEMPLATE_SPECIALIZATION(NODE) (DECL_USE_TEMPLATE (NODE) = 2)
-
-/* Returns true for an explicit or partial specialization of a class
-   template.  */
-#define CLASSTYPE_TEMPLATE_SPECIALIZATION(NODE)                                \
-  (CLASSTYPE_USE_TEMPLATE (NODE) == 2)
-#define SET_CLASSTYPE_TEMPLATE_SPECIALIZATION(NODE)                            \
-  (CLASSTYPE_USE_TEMPLATE (NODE) = 2)
-
-#define DECL_IMPLICIT_INSTANTIATION(NODE) (DECL_USE_TEMPLATE (NODE) == 1)
-#define SET_DECL_IMPLICIT_INSTANTIATION(NODE) (DECL_USE_TEMPLATE (NODE) = 1)
-#define CLASSTYPE_IMPLICIT_INSTANTIATION(NODE)                                 \
-  (CLASSTYPE_USE_TEMPLATE (NODE) == 1)
-#define SET_CLASSTYPE_IMPLICIT_INSTANTIATION(NODE)                             \
-  (CLASSTYPE_USE_TEMPLATE (NODE) = 1)
-
-#define DECL_EXPLICIT_INSTANTIATION(NODE) (DECL_USE_TEMPLATE (NODE) == 3)
-#define SET_DECL_EXPLICIT_INSTANTIATION(NODE) (DECL_USE_TEMPLATE (NODE) = 3)
-#define CLASSTYPE_EXPLICIT_INSTANTIATION(NODE)                                 \
-  (CLASSTYPE_USE_TEMPLATE (NODE) == 3)
-#define SET_CLASSTYPE_EXPLICIT_INSTANTIATION(NODE)                             \
-  (CLASSTYPE_USE_TEMPLATE (NODE) = 3)
-
-/* Nonzero if DECL is a friend function which is an instantiation
-   from the point of view of the compiler, but not from the point of
-   view of the language.  For example given:
-      template <class T> struct S { friend void f(T) {}; };
-   the declaration of `void f(int)' generated when S<int> is
-   instantiated will not be a DECL_TEMPLATE_INSTANTIATION, but will be
-   a DECL_FRIEND_PSEUDO_TEMPLATE_INSTANTIATION.  */
-#define DECL_FRIEND_PSEUDO_TEMPLATE_INSTANTIATION(DECL)                        \
-  (DECL_LANG_SPECIFIC (DECL) && DECL_TEMPLATE_INFO (DECL)                      \
-   && !DECL_USE_TEMPLATE (DECL))
-
-/* Nonzero if DECL is a function generated from a function 'temploid',
-   i.e. template, member of class template, or dependent friend.  */
-#define DECL_TEMPLOID_INSTANTIATION(DECL)                                      \
-  (DECL_TEMPLATE_INSTANTIATION (DECL)                                          \
-   || DECL_FRIEND_PSEUDO_TEMPLATE_INSTANTIATION (DECL))
-
 /* Nonzero if DECL is either defined implicitly by the compiler or
    generated from a temploid.  */
 #define DECL_GENERATED_P(DECL)                                                 \
   (DECL_TEMPLOID_INSTANTIATION (DECL) || DECL_DEFAULTED_FN (DECL))
-
-/* Nonzero iff we are currently processing a declaration for an
-   entity with its own template parameter list, and which is not a
-   full specialization.  */
-#define PROCESSING_REAL_TEMPLATE_DECL_P()                                      \
-  (!processing_template_parmlist                                               \
-   && current_template_depth > template_class_depth (current_scope ()))
-
-/* Nonzero if this VAR_DECL or FUNCTION_DECL has already been
-   instantiated, i.e. its definition has been generated from the
-   pattern given in the template.  */
-#define DECL_TEMPLATE_INSTANTIATED(NODE)                                       \
-  DECL_LANG_FLAG_1 (VAR_OR_FUNCTION_DECL_CHECK (NODE))
 
 /* We know what we're doing with this decl now.  */
 #define DECL_INTERFACE_KNOWN(NODE) DECL_LANG_FLAG_5 (NODE)
@@ -3463,76 +2910,6 @@
 #define DECL_REALLY_EXTERN(NODE)                                               \
   (DECL_EXTERNAL (NODE)                                                        \
    && (!DECL_LANG_SPECIFIC (NODE) || !DECL_NOT_REALLY_EXTERN (NODE)))
-
-/* A thunk is a stub function.
-
-   A thunk is an alternate entry point for an ordinary FUNCTION_DECL.
-   The address of the ordinary FUNCTION_DECL is given by the
-   DECL_INITIAL, which is always an ADDR_EXPR whose operand is a
-   FUNCTION_DECL.  The job of the thunk is to either adjust the this
-   pointer before transferring control to the FUNCTION_DECL, or call
-   FUNCTION_DECL and then adjust the result value. Note, the result
-   pointer adjusting thunk must perform a call to the thunked
-   function, (or be implemented via passing some invisible parameter
-   to the thunked function, which is modified to perform the
-   adjustment just before returning).
-
-   A thunk may perform either, or both, of the following operations:
-
-   o Adjust the this or result pointer by a constant offset.
-   o Adjust the this or result pointer by looking up a vcall or vbase offset
-     in the vtable.
-
-   A this pointer adjusting thunk converts from a base to a derived
-   class, and hence adds the offsets. A result pointer adjusting thunk
-   converts from a derived class to a base, and hence subtracts the
-   offsets.  If both operations are performed, then the constant
-   adjustment is performed first for this pointer adjustment and last
-   for the result pointer adjustment.
-
-   The constant adjustment is given by THUNK_FIXED_OFFSET.  If the
-   vcall or vbase offset is required, THUNK_VIRTUAL_OFFSET is
-   used. For this pointer adjusting thunks, it is the vcall offset
-   into the vtable.  For result pointer adjusting thunks it is the
-   binfo of the virtual base to convert to.  Use that binfo's vbase
-   offset.
-
-   It is possible to have equivalent covariant thunks.  These are
-   distinct virtual covariant thunks whose vbase offsets happen to
-   have the same value.  THUNK_ALIAS is used to pick one as the
-   canonical thunk, which will get all the this pointer adjusting
-   thunks attached to it.  */
-
-/* An integer indicating how many bytes should be subtracted from the
-   this or result pointer when this function is called.  */
-#define THUNK_FIXED_OFFSET(DECL)                                               \
-  (DECL_LANG_SPECIFIC (THUNK_FUNCTION_CHECK (DECL))->u.fn.u5.fixed_offset)
-
-/* A tree indicating how to perform the virtual adjustment. For a this
-   adjusting thunk it is the number of bytes to be added to the vtable
-   to find the vcall offset. For a result adjusting thunk, it is the
-   binfo of the relevant virtual base.  If NULL, then there is no
-   virtual adjust.  (The vptr is always located at offset zero from
-   the this or result pointer.)  (If the covariant type is within the
-   class hierarchy being laid out, the vbase index is not yet known
-   at the point we need to create the thunks, hence the need to use
-   binfos.)  */
-
-#define THUNK_VIRTUAL_OFFSET(DECL)                                             \
-  (LANG_DECL_MIN_CHECK (FUNCTION_DECL_CHECK (DECL))->access)
-
-/* A thunk which is equivalent to another thunk.  */
-#define THUNK_ALIAS(DECL)                                                      \
-  (DECL_LANG_SPECIFIC (FUNCTION_DECL_CHECK (DECL))->u.min.template_info)
-
-/* For thunk NODE, this is the FUNCTION_DECL thunked to.  It is
-   possible for the target to be a thunk too.  */
-#define THUNK_TARGET(NODE) (LANG_DECL_FN_CHECK (NODE)->befriending_classes)
-
-/* True for a SCOPE_REF iff the "template" keyword was used to
-   indicate that the qualified name denotes a template.  */
-#define QUALIFIED_NAME_IS_TEMPLATE(NODE)                                       \
-  (TREE_LANG_FLAG_1 (SCOPE_REF_CHECK (NODE)))
 
 /* [coroutines]
  */
@@ -3902,39 +3279,6 @@
 #define same_or_base_type_p(TYPE1, TYPE2)                                      \
   comptypes ((TYPE1), (TYPE2), COMPARE_BASE)
 
-/* These macros are used to access a TEMPLATE_PARM_INDEX.  */
-#define TEMPLATE_PARM_INDEX_CAST(NODE)                                         \
-  ((template_parm_index *) TEMPLATE_PARM_INDEX_CHECK (NODE))
-#define TEMPLATE_PARM_IDX(NODE) (TEMPLATE_PARM_INDEX_CAST (NODE)->index)
-#define TEMPLATE_PARM_LEVEL(NODE) (TEMPLATE_PARM_INDEX_CAST (NODE)->level)
-#define TEMPLATE_PARM_DESCENDANTS(NODE) (TREE_CHAIN (NODE))
-#define TEMPLATE_PARM_ORIG_LEVEL(NODE)                                         \
-  (TEMPLATE_PARM_INDEX_CAST (NODE)->orig_level)
-#define TEMPLATE_PARM_DECL(NODE) (TEMPLATE_PARM_INDEX_CAST (NODE)->decl)
-#define TEMPLATE_PARM_PARAMETER_PACK(NODE)                                     \
-  (TREE_LANG_FLAG_0 (TEMPLATE_PARM_INDEX_CHECK (NODE)))
-
-/* These macros are for accessing the fields of TEMPLATE_TYPE_PARM,
-   TEMPLATE_TEMPLATE_PARM and BOUND_TEMPLATE_TEMPLATE_PARM nodes.  */
-#define TEMPLATE_TYPE_PARM_INDEX(NODE)                                         \
-  (TYPE_VALUES_RAW (TREE_CHECK3 ((NODE), TEMPLATE_TYPE_PARM,                   \
-				 TEMPLATE_TEMPLATE_PARM,                       \
-				 BOUND_TEMPLATE_TEMPLATE_PARM)))
-#define TEMPLATE_TYPE_IDX(NODE)                                                \
-  (TEMPLATE_PARM_IDX (TEMPLATE_TYPE_PARM_INDEX (NODE)))
-#define TEMPLATE_TYPE_LEVEL(NODE)                                              \
-  (TEMPLATE_PARM_LEVEL (TEMPLATE_TYPE_PARM_INDEX (NODE)))
-#define TEMPLATE_TYPE_ORIG_LEVEL(NODE)                                         \
-  (TEMPLATE_PARM_ORIG_LEVEL (TEMPLATE_TYPE_PARM_INDEX (NODE)))
-#define TEMPLATE_TYPE_DECL(NODE)                                               \
-  (TEMPLATE_PARM_DECL (TEMPLATE_TYPE_PARM_INDEX (NODE)))
-#define TEMPLATE_TYPE_PARAMETER_PACK(NODE)                                     \
-  (TEMPLATE_PARM_PARAMETER_PACK (TEMPLATE_TYPE_PARM_INDEX (NODE)))
-
-/* True iff this TEMPLATE_TYPE_PARM represents decltype(auto).  */
-#define AUTO_IS_DECLTYPE(NODE)                                                 \
-  (TYPE_LANG_FLAG_5 (TEMPLATE_TYPE_PARM_CHECK (NODE)))
-
 /* These constants can used as bit flags in the process of tree formatting.
 
    TFF_PLAIN_IDENTIFIER: unqualified part of a name.
@@ -3987,13 +3331,6 @@
        appropriate diagnostics.  */
 const unsigned int STF_USER_VISIBLE = 1U;
 const unsigned int STF_STRIP_DEPENDENT = 1U << 1;
-
-/* Returns the TEMPLATE_DECL associated to a TEMPLATE_TEMPLATE_PARM
-   node.  */
-#define TEMPLATE_TEMPLATE_PARM_TEMPLATE_DECL(NODE)                             \
-  ((TREE_CODE (NODE) == BOUND_TEMPLATE_TEMPLATE_PARM)                          \
-     ? TYPE_TI_TEMPLATE (NODE)                                                 \
-     : TYPE_NAME (NODE))
 
 /* Given an ass_op_p boolean and a tree code, return a pointer to its
    overloaded operator info.  Tree codes for non-overloaded operators
@@ -4058,11 +3395,6 @@ enum scope_kind
 			scoped enumeration.  */
   sk_namespace,	     /* The scope containing the members of a
 			namespace, including the global scope.  */
-  sk_template_parms, /* A scope for template parameters.  */
-  sk_template_spec,  /* Like sk_template_parms, but for an explicit
-			specialization.  Since, by definition, an
-			explicit specialization is introduced by
-			"template <>", this scope is always empty.  */
   sk_transaction,    /* A synchronized or atomic statement.  */
   sk_omp	     /* An OpenMP structured block.  */
 };
@@ -4124,14 +3456,12 @@ struct GTY (()) saved_scope
   tree function_decl;
   vec<tree, va_gc> *lang_base;
   tree lang_name;
-  tree template_parms;
   tree x_saved_tree;
 
   /* Only used for uses of this in trailing return type.  */
   tree x_current_class_ptr;
   tree x_current_class_ref;
 
-  int x_processing_template_decl;
   int x_processing_specialization;
   int x_processing_constraint;
   int suppress_location_wrappers;
@@ -4300,16 +3630,6 @@ struct GTY (()) deferred_access_check
   location_t loc;
 };
 
-// forked from gcc/cp/cp-tree.h tree_template_info
-
-struct GTY (()) tree_template_info
-{
-  struct tree_base base;
-  tree tmpl;
-  tree args;
-  vec<deferred_access_check, va_gc> *deferred_access_checks;
-};
-
 // forked from gcc/cp/cp-tree.h lang_decl_selector
 
 /* Discriminator values for lang_decl.  */
@@ -4341,7 +3661,6 @@ struct GTY (()) lang_decl_base
 {
   ENUM_BITFIELD (lang_decl_selector) selector : 3;
   ENUM_BITFIELD (languages) language : 1;
-  unsigned use_template : 2;
   unsigned not_really_extern : 1;    /* var or fn */
   unsigned initialized_in_class : 1; /* var or fn */
 
@@ -4376,13 +3695,6 @@ struct GTY (()) lang_decl_base
 struct GTY (()) lang_decl_min
 {
   struct lang_decl_base base; /* 32-bits.  */
-
-  /* In a FUNCTION_DECL for which DECL_THUNK_P holds, this is
-     THUNK_ALIAS.
-     In a FUNCTION_DECL for which DECL_THUNK_P does not hold,
-     VAR_DECL, TYPE_DECL, or TEMPLATE_DECL, this is
-     DECL_TEMPLATE_INFO.  */
-  tree template_info;
 
   /* In a DECL_THUNK_P FUNCTION_DECL, this is THUNK_VIRTUAL_OFFSET.
      In a lambda-capture proxy VAR_DECL, this is DECL_CAPTURED_VARIABLE.
@@ -4624,29 +3936,6 @@ get_fndecl_from_callee (tree fn);
 // Return an expression for the address of BASE[INDEX], used in offset intrinsic
 extern tree
 pointer_offset_expression (tree base_tree, tree index_tree, location_t locus);
-
-// forked from gcc/cp/cp-tree.h template_info_decl_check
-/* Returns t iff the node can have a TEMPLATE_INFO field.  */
-
-inline tree
-template_info_decl_check (const_tree t, const char *f, int l, const char *fn)
-{
-  switch (TREE_CODE (t))
-    {
-    case VAR_DECL:
-    case FUNCTION_DECL:
-    case FIELD_DECL:
-    case TYPE_DECL:
-    case CONCEPT_DECL:
-    case TEMPLATE_DECL:
-      return const_cast<tree> (t);
-    default:
-      break;
-    }
-  tree_check_failed (t, f, l, fn, VAR_DECL, FUNCTION_DECL, FIELD_DECL,
-		     TYPE_DECL, CONCEPT_DECL, TEMPLATE_DECL, 0);
-  gcc_unreachable ();
-}
 
 } // namespace Rust
 
