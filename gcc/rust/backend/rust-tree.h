@@ -525,20 +525,6 @@
 #define STATIC_ASSERT_SOURCE_LOCATION(NODE)                                    \
   (((struct tree_static_assert *) STATIC_ASSERT_CHECK (NODE))->location)
 
-/* The types that we are processing.  */
-#define TRAIT_EXPR_TYPE1(NODE)                                                 \
-  (((struct tree_trait_expr *) TRAIT_EXPR_CHECK (NODE))->type1)
-
-#define TRAIT_EXPR_TYPE2(NODE)                                                 \
-  (((struct tree_trait_expr *) TRAIT_EXPR_CHECK (NODE))->type2)
-
-/* The specific trait that we are processing.  */
-#define TRAIT_EXPR_KIND(NODE)                                                  \
-  (((struct tree_trait_expr *) TRAIT_EXPR_CHECK (NODE))->kind)
-
-#define TRAIT_EXPR_LOCATION(NODE)                                              \
-  (((struct tree_trait_expr *) TRAIT_EXPR_CHECK (NODE))->locus)
-
 /* Identifiers used for lambda types are almost anonymous.  Use this
    spare flag to distinguish them (they also have the anonymous flag).  */
 #define IDENTIFIER_LAMBDA_P(NODE)                                              \
@@ -3503,58 +3489,6 @@ struct GTY (()) tree_lambda_expr
   location_t locus;
   enum cp_lambda_default_capture_mode_type default_capture_mode : 8;
   short int discriminator;
-};
-
-// forked from gcc/cp/cp-tree.h cp_trait_kind
-/* The different kinds of traits that we encounter.  */
-
-enum cp_trait_kind
-{
-  CPTK_BASES,
-  CPTK_DIRECT_BASES,
-  CPTK_HAS_NOTHROW_ASSIGN,
-  CPTK_HAS_NOTHROW_CONSTRUCTOR,
-  CPTK_HAS_NOTHROW_COPY,
-  CPTK_HAS_TRIVIAL_ASSIGN,
-  CPTK_HAS_TRIVIAL_CONSTRUCTOR,
-  CPTK_HAS_TRIVIAL_COPY,
-  CPTK_HAS_TRIVIAL_DESTRUCTOR,
-  CPTK_HAS_UNIQUE_OBJ_REPRESENTATIONS,
-  CPTK_HAS_VIRTUAL_DESTRUCTOR,
-  CPTK_IS_ABSTRACT,
-  CPTK_IS_AGGREGATE,
-  CPTK_IS_BASE_OF,
-  CPTK_IS_CLASS,
-  CPTK_IS_EMPTY,
-  CPTK_IS_ENUM,
-  CPTK_IS_FINAL,
-  CPTK_IS_LAYOUT_COMPATIBLE,
-  CPTK_IS_LITERAL_TYPE,
-  CPTK_IS_POINTER_INTERCONVERTIBLE_BASE_OF,
-  CPTK_IS_POD,
-  CPTK_IS_POLYMORPHIC,
-  CPTK_IS_SAME_AS,
-  CPTK_IS_STD_LAYOUT,
-  CPTK_IS_TRIVIAL,
-  CPTK_IS_TRIVIALLY_ASSIGNABLE,
-  CPTK_IS_TRIVIALLY_CONSTRUCTIBLE,
-  CPTK_IS_TRIVIALLY_COPYABLE,
-  CPTK_IS_UNION,
-  CPTK_UNDERLYING_TYPE,
-  CPTK_IS_ASSIGNABLE,
-  CPTK_IS_CONSTRUCTIBLE,
-  CPTK_IS_NOTHROW_ASSIGNABLE,
-  CPTK_IS_NOTHROW_CONSTRUCTIBLE
-};
-
-// forked from gcc/cp/cp-tree.h tree_trait_expr
-struct GTY (()) tree_trait_expr
-{
-  struct tree_common common;
-  tree type1;
-  tree type2;
-  location_t locus;
-  enum cp_trait_kind kind;
 };
 
 // forked from gcc/cp/cp-tree.h tree_overload

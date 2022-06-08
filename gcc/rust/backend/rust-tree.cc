@@ -792,12 +792,6 @@ cp_walk_subtrees (tree *tp, int *walk_subtrees_p, walk_tree_fn func, void *data,
 	WALK_SUBTREE (TREE_TYPE (*tp));
       break;
 
-    case TRAIT_EXPR:
-      WALK_SUBTREE (TRAIT_EXPR_TYPE1 (*tp));
-      WALK_SUBTREE (TRAIT_EXPR_TYPE2 (*tp));
-      *walk_subtrees_p = 0;
-      break;
-
     case DECLTYPE_TYPE:
       ++cp_unevaluated_operand;
       /* We can't use WALK_SUBTREE here because of the goto.  */
