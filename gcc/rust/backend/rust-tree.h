@@ -1711,14 +1711,6 @@
    an override virt-specifier */
 #define DECL_OVERRIDE_P(NODE) (TREE_LANG_FLAG_0 (NODE))
 
-/* The thunks associated with NODE, a FUNCTION_DECL.  */
-#define DECL_THUNKS(NODE)                                                      \
-  (DECL_VIRTUAL_P (NODE) ? LANG_DECL_FN_CHECK (NODE)->context : NULL_TREE)
-
-/* Set DECL_THUNKS.  */
-#define SET_DECL_THUNKS(NODE, THUNKS)                                          \
-  (LANG_DECL_FN_CHECK (NODE)->context = (THUNKS))
-
 /* If NODE, a FUNCTION_DECL, is a C++11 inheriting constructor, then this
    is the constructor it inherits from.  */
 #define DECL_INHERITED_CTOR(NODE)                                              \
@@ -1737,34 +1729,8 @@
 #define SET_DECL_INHERITED_CTOR(NODE, INH)                                     \
   (LANG_DECL_FN_CHECK (NODE)->context = (INH))
 
-/* Nonzero if NODE is a thunk, rather than an ordinary function.  */
-#define DECL_THUNK_P(NODE)                                                     \
-  (TREE_CODE (NODE) == FUNCTION_DECL && DECL_LANG_SPECIFIC (NODE)              \
-   && LANG_DECL_FN_CHECK (NODE)->thunk_p)
-
-/* Set DECL_THUNK_P for node.  */
-#define SET_DECL_THUNK_P(NODE, THIS_ADJUSTING)                                 \
-  (LANG_DECL_FN_CHECK (NODE)->thunk_p = 1,                                     \
-   LANG_DECL_FN_CHECK (NODE)->this_thunk_p = (THIS_ADJUSTING))
-
-/* Nonzero if NODE is a this pointer adjusting thunk.  */
-#define DECL_THIS_THUNK_P(NODE)                                                \
-  (DECL_THUNK_P (NODE) && LANG_DECL_FN_CHECK (NODE)->this_thunk_p)
-
-/* Nonzero if NODE is a result pointer adjusting thunk.  */
-#define DECL_RESULT_THUNK_P(NODE)                                              \
-  (DECL_THUNK_P (NODE) && !LANG_DECL_FN_CHECK (NODE)->this_thunk_p)
-
-/* Nonzero if NODE is a FUNCTION_DECL, but not a thunk.  */
-#define DECL_NON_THUNK_FUNCTION_P(NODE)                                        \
-  (TREE_CODE (NODE) == FUNCTION_DECL && !DECL_THUNK_P (NODE))
-
 /* Nonzero if NODE is `extern "C"'.  */
 #define DECL_EXTERN_C_P(NODE) (DECL_LANGUAGE (NODE) == lang_c)
-
-/* Nonzero if NODE is an `extern "C"' function.  */
-#define DECL_EXTERN_C_FUNCTION_P(NODE)                                         \
-  (DECL_NON_THUNK_FUNCTION_P (NODE) && DECL_EXTERN_C_P (NODE))
 
 /* Non-zero if this variable is declared `constinit' specifier.  */
 #define DECL_DECLARED_CONSTINIT_P(NODE)                                        \
@@ -2175,11 +2141,6 @@
    the object.  */
 #define AGGR_INIT_ZERO_FIRST(NODE)                                             \
   TREE_LANG_FLAG_2 (AGGR_INIT_EXPR_CHECK (NODE))
-
-/* Nonzero means that the call is the jump from a thunk to the
-   thunked-to function.  */
-#define AGGR_INIT_FROM_THUNK_P(NODE)                                           \
-  (AGGR_INIT_EXPR_CHECK (NODE)->base.protected_flag)
 
 /* AGGR_INIT_EXPR accessors.  These are equivalent to the CALL_EXPR
    accessors, except for AGGR_INIT_EXPR_SLOT (which takes the place of
